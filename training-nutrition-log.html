@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Training Log">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f1419">
+<title>Daily Training & Nutrition Log</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --card: #1a2332;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --border: #2d3a4f;
+    --success: #10b981;
+    --danger: #ef4444;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 1rem;
+    line-height: 1.45;
+  }
+  .container { max-width: 860px; margin: 0 auto; }
+  h1 { text-align: center; margin: 0.5rem 0 0.25rem; font-size: 1.6rem; }
+  .subtitle { text-align: center; color: var(--muted); margin-bottom: 1.25rem; font-size: 0.9rem; }
+  .top-bar {
+    display: flex; gap: 0.75rem; align-items: center; justify-content: center;
+    flex-wrap: wrap; margin-bottom: 1rem;
+  }
+  input[type="date"], select, input[type="text"], input[type="number"], textarea {
+    background: #0f172a; color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 0.5rem 0.65rem; font-family: inherit; font-size: 0.95rem;
+  }
+  textarea { width: 100%; min-height: 60px; resize: vertical; }
+  input[type="text"], input[type="number"], select { width: 100%; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
+  @media (max-width: 640px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+  .section {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    margin-bottom: 1rem; overflow: hidden;
+  }
+  .section-header {
+    padding: 0.75rem 1rem; background: #243044; cursor: pointer; font-weight: 600;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .section-header:hover { background: #2d3b52; }
+  .section-body { padding: 1rem; display: none; }
+  .section.open .section-body { display: block; }
+  .field { margin-bottom: 0.85rem; }
+  .field label { display: block; font-weight: 600; margin-bottom: 0.3rem; font-size: 0.9rem; }
+  .btn {
+    background: var(--accent); color: white; border: none; padding: 0.5rem 1rem;
+    border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem;
+  }
+  .btn:hover { background: var(--accent-hover); }
+  .btn.secondary { background: #334155; }
+  .btn.secondary:hover { background: #475569; }
+  .btn.danger { background: var(--danger); }
+  .btn.small { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+  .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; margin: 1.25rem 0; }
+  .status { text-align: center; color: var(--success); min-height: 1.4rem; margin-bottom: 0.5rem; font-size: 0.9rem; }
+  .dynamic-item { background: #111827; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem; position: relative; }
+  .remove-btn { position: absolute; top: 6px; right: 6px; background: #7f1d1d; color: white; border: none; border-radius: 4px; padding: 0.15rem 0.4rem; cursor: pointer; font-size: 0.75rem; }
+  .screenshots { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+  .screenshot-thumb { position: relative; width: 120px; height: 120px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+  .screenshot-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .screenshot-thumb .remove-btn { top: 2px; right: 2px; }
+  .file-input-label {
+    display: inline-block; background: #334155; color: white; padding: 0.45rem 0.9rem;
+    border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600;
+  }
+  .file-input-label:hover { background: #475569; }
+  input[type="file"] { display: none; }
+  footer { text-align: center; color: var(--muted); font-size: 0.8rem; margin-top: 1.5rem; }
+  @media print {
+    body { background: white; color: black; }
+    .actions, .status, footer, .remove-btn, .btn, .file-input-label { display: none !important; }
+    .section-body { display: block !important; }
+    .section { break-inside: avoid; border: 1px solid #ccc; }
+    .screenshot-thumb { width: 180px; height: 180px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Daily Training & Nutrition Log</h1>
+  <p class="subtitle">Structured from Chief’s questionnaire · Data stays in your browser</p>
+
+  <div class="top-bar">
+    <label><strong>Date:</strong></label>
+    <input type="date" id="logDate">
+    <button class="btn secondary" onclick="setToday()">Today</button>
+    <button class="btn secondary" onclick="loadDate()">Load</button>
+  </div>
+  <div class="status" id="status"></div>
+
+  <div id="logContent">
+
+    <!-- NUTRITION -->
+    <div class="section open" data-section="nutrition">
+      <div class="section-header" onclick="toggleSection(this)">
+        <span>🍽️ Nutrition Log</span><span>▼</span>
+      </div>
+      <div class="section-body">
+        <div class="field">
+          <label>Day protein total (g or “Galley estimate”)</label>
+          <input type="text" id="protein_total" placeholder="e.g. 180g or Galley estimate">
+        </div>
+
+        <h3 style="margin: 1rem 0 0.5rem;">—— OFF-TEMPLATE / UNPLANNED ——</h3>
+        <div id="unplannedContainer"></div>
+        <button class="btn small secondary" onclick="addUnplanned()">+ Add unplanned item</button>
+
+        <!-- Meals -->
+        <div id="mealsContainer"></div>
+      </div>
+    </div>
+
+    <!-- CARDIO -->
+    <div class="section" data-section="cardio">
+      <div class="section-header" onclick="toggleSection(this)">
+        <span>🏃 Cardio Log</span><span>▼</span>
+      </div>
+      <div class="section-body">
+        <div class="grid-2">
+          <div class="field">
+            <label>Session type</label>
+            <select id="cardio_type">
+              <option value="">Select...</option>
+              <option>indoor bike</option>
+              <option>MTB</option>
+              <option>surf</option>
+              <option>walk</option>
+              <option>HIIT</option>
+              <option>other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Effort (1–10)</label>
+            <input type="number" id="cardio_effort" min="1" max="10" placeholder="1-10">
+          </div>
+        </div>
+        <div class="grid-3">
+          <div class="field">
+            <label>Completed</label>
+            <select id="cardio_completed"><option value="">—</option><option>yes</option><option>no</option></select>
+          </div>
+          <div class="field">
+            <label>Pain score (0–10)</label>
+            <input type="number" id="cardio_pain" min="0" max="10">
+          </div>
+          <div class="field">
+            <label>Timer valid</label>
+            <select id="cardio_timer"><option value="">—</option><option>yes</option><option>no</option></select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Pain type (or none)</label>
+          <input type="text" id="cardio_pain_type" placeholder="e.g. none, knee, lower back">
+        </div>
+        <div class="field">
+          <label>Route / trail / beach (or trainer)</label>
+          <input type="text" id="cardio_route">
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>Weather</label>
+            <input type="text" id="cardio_weather">
+          </div>
+          <div class="field">
+            <label>Water temp (surf only)</label>
+            <input type="text" id="cardio_water_temp">
+          </div>
+        </div>
+        <div class="field">
+          <label>Other environment</label>
+          <input type="text" id="cardio_env">
+        </div>
+        <div class="field">
+          <label>Notes</label>
+          <textarea id="cardio_notes"></textarea>
+        </div>
+        <div class="grid-3">
+          <div class="field"><label>Duration (optional)</label><input type="text" id="cardio_duration" placeholder="if no Garmin"></div>
+          <div class="field"><label>Distance (optional)</label><input type="text" id="cardio_distance"></div>
+          <div class="field"><label>Pace (optional)</label><input type="text" id="cardio_pace"></div>
+        </div>
+        <div class="field">
+          <label>Garmin screenshots attached?</label>
+          <select id="cardio_garmin"><option value="">—</option><option>yes</option><option>no</option></select>
+        </div>
+        <div class="field">
+          <label>Attach screenshots (from photo library)</label>
+          <label class="file-input-label">
+            📷 Add Screenshot
+            <input type="file" accept="image/*" multiple onchange="handleScreenshots(event, 'cardio')">
+          </label>
+          <div class="screenshots" id="cardioScreenshots"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIFTING -->
+    <div class="section" data-section="lifting">
+      <div class="section-header" onclick="toggleSection(this)">
+        <span>💪 Lifting Log</span><span>▼</span>
+      </div>
+      <div class="section-body">
+        <div class="grid-2">
+          <div class="field">
+            <label>Location</label>
+            <select id="lift_location">
+              <option value="">Select...</option>
+              <option>Office gym</option>
+              <option>Garage</option>
+              <option>LA Fitness</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Session type</label>
+            <input type="text" id="lift_session" placeholder="chest / back / legs / etc.">
+          </div>
+        </div>
+        <div class="grid-3">
+          <div class="field"><label>Effort (1–10)</label><input type="number" id="lift_effort" min="1" max="10"></div>
+          <div class="field"><label>Completed (% of plan)</label><input type="text" id="lift_completed" placeholder="e.g. 100% or 80%"></div>
+          <div class="field"><label>Pain score (0–10)</label><input type="number" id="lift_pain" min="0" max="10"></div>
+        </div>
+        <div class="grid-2">
+          <div class="field"><label>Pain type (or none)</label><input type="text" id="lift_pain_type"></div>
+          <div class="field">
+            <label>Timer valid</label>
+            <select id="lift_timer"><option value="">—</option><option>yes</option><option>no</option></select>
+          </div>
+        </div>
+        <div class="field"><label>Notes</label><textarea id="lift_notes"></textarea></div>
+
+        <h3 style="margin: 1rem 0 0.5rem;">Exercises</h3>
+        <div id="exercisesContainer"></div>
+        <button class="btn small secondary" onclick="addExercise()">+ Add exercise</button>
+
+        <div class="field" style="margin-top:1rem;">
+          <label>Garmin screenshot attached?</label>
+          <select id="lift_garmin"><option value="">—</option><option>yes</option><option>no</option></select>
+        </div>
+        <div class="field">
+          <label>Attach screenshots (from photo library)</label>
+          <label class="file-input-label">
+            📷 Add Screenshot
+            <input type="file" accept="image/*" multiple onchange="handleScreenshots(event, 'lifting')">
+          </label>
+          <div class="screenshots" id="liftingScreenshots"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="actions">
+    <button class="btn" onclick="saveLog()">💾 Save Day</button>
+    <button class="btn secondary" onclick="exportPDF()">📄 Export PDF</button>
+    <button class="btn danger" onclick="clearDay()">🗑️ Clear Day</button>
+  </div>
+
+  <footer>
+    Screenshots are stored with the day’s log in your browser (localStorage).<br>
+    Keep images reasonably sized — large photos can hit storage limits. Export PDFs for backup.
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+const STORAGE_KEY = 'creatureTrainingLog_v2';
+const MEALS = ['breakfast', 'lunch', 'dinner'];
+
+// In-memory screenshot stores for the current date (arrays of base64)
+let cardioScreenshots = [];
+let liftingScreenshots = [];
+
+function toggleSection(header) {
+  header.parentElement.classList.toggle('open');
+}
+
+function getStorage() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; }
+}
+function setStorage(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+function getDateKey() { return document.getElementById('logDate').value; }
+function setStatus(msg) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 2800);
+}
+
+function mealFields(meal) {
+  return `
+    <div class="field"><label>Hydration</label><input type="text" data-meal="${meal}" data-field="hydration"></div>
+    <div class="field"><label>Solid foods</label><textarea data-meal="${meal}" data-field="solid"></textarea></div>
+    <div class="grid-2">
+      <div class="field"><label>Snacks</label><input type="text" data-meal="${meal}" data-field="snacks"></div>
+      <div class="field"><label>Fruit</label><input type="text" data-meal="${meal}" data-field="fruit"></div>
+    </div>
+    <div class="field"><label>Other</label><input type="text" data-meal="${meal}" data-field="other"></div>
+    <div class="field"><label>Protein / detail</label><input type="text" data-meal="${meal}" data-field="protein"></div>
+    <div class="grid-3">
+      <div class="field"><label>Calories (optional)</label><input type="text" data-meal="${meal}" data-field="calories"></div>
+      <div class="field"><label>Water</label><input type="text" data-meal="${meal}" data-field="water"></div>
+      <div class="field"><label>Alcohol</label><select data-meal="${meal}" data-field="alcohol"><option value="">—</option><option>yes</option><option>no</option></select></div>
+    </div>
+    <div class="grid-3">
+      <div class="field"><label>IBS trigger</label><select data-meal="${meal}" data-field="ibs"><option value="">—</option><option>yes</option><option>no</option></select></div>
+      <div class="field"><label>Late meal</label><select data-meal="${meal}" data-field="late"><option value="">—</option><option>yes</option><option>no</option></select></div>
+      <div class="field"><label>Supplements</label><input type="text" data-meal="${meal}" data-field="supplements"></div>
+    </div>
+  `;
+}
+
+function initMeals() {
+  const container = document.getElementById('mealsContainer');
+  container.innerHTML = MEALS.map(m => `
+    <h3 style="margin:1.25rem 0 0.5rem; text-transform:uppercase; letter-spacing:0.5px;">—— ${m} ——</h3>
+    ${mealFields(m)}
+  `).join('');
+}
+
+function addUnplanned(data = {}) {
+  const div = document.createElement('div');
+  div.className = 'dynamic-item';
+  div.innerHTML = `
+    <button class="remove-btn" onclick="this.parentElement.remove()">✕</button>
+    <div class="grid-2">
+      <div class="field"><label>Food item</label><input type="text" class="up-item" value="${data.item || ''}"></div>
+      <div class="field"><label>Rough portion</label><input type="text" class="up-portion" value="${data.portion || ''}"></div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Calories (optional)</label><input type="text" class="up-cal" value="${data.calories || ''}"></div>
+      <div class="field"><label>Context (where / who offered)</label><input type="text" class="up-context" value="${data.context || ''}"></div>
+    </div>
+  `;
+  document.getElementById('unplannedContainer').appendChild(div);
+}
+
+function addExercise(data = {}) {
+  const div = document.createElement('div');
+  div.className = 'dynamic-item';
+  div.innerHTML = `
+    <button class="remove-btn" onclick="this.parentElement.remove()">✕</button>
+    <div class="field"><label>Exercise name</label><input type="text" class="ex-name" value="${data.name || ''}"></div>
+    <div class="grid-3">
+      <div class="field"><label>Weight</label><input type="text" class="ex-weight" value="${data.weight || ''}"></div>
+      <div class="field"><label>Reps (set1 / set2 / set3…)</label><input type="text" class="ex-reps" value="${data.reps || ''}" placeholder="e.g. 8/8/6"></div>
+      <div class="field"><label>Sets</label><input type="text" class="ex-sets" value="${data.sets || ''}"></div>
+    </div>
+  `;
+  document.getElementById('exercisesContainer').appendChild(div);
+}
+
+function renderScreenshots(type) {
+  const container = document.getElementById(type + 'Screenshots');
+  const arr = type === 'cardio' ? cardioScreenshots : liftingScreenshots;
+  container.innerHTML = '';
+  arr.forEach((src, idx) => {
+    const div = document.createElement('div');
+    div.className = 'screenshot-thumb';
+    div.innerHTML = `
+      <img src="${src}" alt="screenshot">
+      <button class="remove-btn" onclick="removeScreenshot('${type}', ${idx})">✕</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function removeScreenshot(type, idx) {
+  if (type === 'cardio') cardioScreenshots.splice(idx, 1);
+  else liftingScreenshots.splice(idx, 1);
+  renderScreenshots(type);
+  saveLog();
+}
+
+function handleScreenshots(event, type) {
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
+
+  let processed = 0;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target.result;
+      if (type === 'cardio') cardioScreenshots.push(base64);
+      else liftingScreenshots.push(base64);
+      processed++;
+      if (processed === files.length) {
+        renderScreenshots(type);
+        saveLog();
+        event.target.value = ''; // reset so same file can be picked again
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function collectData() {
+  const data = {
+    protein_total: document.getElementById('protein_total').value,
+    unplanned: [],
+    meals: {},
+    cardio: { screenshots: cardioScreenshots.slice() },
+    lifting: { screenshots: liftingScreenshots.slice() }
+  };
+
+  // Unplanned
+  document.querySelectorAll('#unplannedContainer .dynamic-item').forEach(item => {
+    data.unplanned.push({
+      item: item.querySelector('.up-item').value,
+      portion: item.querySelector('.up-portion').value,
+      calories: item.querySelector('.up-cal').value,
+      context: item.querySelector('.up-context').value
+    });
+  });
+
+  // Meals
+  MEALS.forEach(meal => {
+    data.meals[meal] = {};
+    document.querySelectorAll(`[data-meal="${meal}"]`).forEach(el => {
+      data.meals[meal][el.dataset.field] = el.value;
+    });
+  });
+
+  // Cardio fields
+  ['type','effort','completed','pain','pain_type','timer','route','weather','water_temp','env','notes','duration','distance','pace','garmin']
+    .forEach(f => {
+      const el = document.getElementById('cardio_' + f);
+      if (el) data.cardio[f] = el.value;
+    });
+
+  // Lifting fields
+  ['location','session','effort','completed','pain','pain_type','timer','notes','garmin']
+    .forEach(f => {
+      const el = document.getElementById('lift_' + f);
+      if (el) data.lifting[f] = el.value;
+    });
+
+  data.lifting.exercises = [];
+  document.querySelectorAll('#exercisesContainer .dynamic-item').forEach(item => {
+    data.lifting.exercises.push({
+      name: item.querySelector('.ex-name').value,
+      weight: item.querySelector('.ex-weight').value,
+      reps: item.querySelector('.ex-reps').value,
+      sets: item.querySelector('.ex-sets').value
+    });
+  });
+
+  return data;
+}
+
+function populateData(data) {
+  if (!data) data = {};
+  document.getElementById('protein_total').value = data.protein_total || '';
+
+  // Unplanned
+  document.getElementById('unplannedContainer').innerHTML = '';
+  (data.unplanned || []).forEach(u => addUnplanned(u));
+  if (!(data.unplanned || []).length) addUnplanned();
+
+  // Meals
+  MEALS.forEach(meal => {
+    const m = (data.meals || {})[meal] || {};
+    document.querySelectorAll(`[data-meal="${meal}"]`).forEach(el => {
+      el.value = m[el.dataset.field] || '';
+    });
+  });
+
+  // Cardio
+  const c = data.cardio || {};
+  ['type','effort','completed','pain','pain_type','timer','route','weather','water_temp','env','notes','duration','distance','pace','garmin']
+    .forEach(f => {
+      const el = document.getElementById('cardio_' + f);
+      if (el) el.value = c[f] || '';
+    });
+  cardioScreenshots = Array.isArray(c.screenshots) ? c.screenshots.slice() : [];
+  renderScreenshots('cardio');
+
+  // Lifting
+  const l = data.lifting || {};
+  ['location','session','effort','completed','pain','pain_type','timer','notes','garmin']
+    .forEach(f => {
+      const el = document.getElementById('lift_' + f);
+      if (el) el.value = l[f] || '';
+    });
+
+  document.getElementById('exercisesContainer').innerHTML = '';
+  (l.exercises || []).forEach(ex => addExercise(ex));
+  if (!(l.exercises || []).length) addExercise();
+
+  liftingScreenshots = Array.isArray(l.screenshots) ? l.screenshots.slice() : [];
+  renderScreenshots('lifting');
+}
+
+function saveLog() {
+  const date = getDateKey();
+  if (!date) { alert('Select a date first'); return; }
+  const all = getStorage();
+  all[date] = collectData();
+  setStorage(all);
+  setStatus('Saved ' + date);
+}
+
+function loadDate() {
+  const date = getDateKey();
+  if (!date) return;
+  const all = getStorage();
+  populateData(all[date]);
+  setStatus(all[date] ? 'Loaded ' + date : 'New day — ' + date);
+}
+
+function setToday() {
+  document.getElementById('logDate').value = new Date().toISOString().split('T')[0];
+  loadDate();
+}
+
+function clearDay() {
+  if (!confirm('Clear all data for this date?')) return;
+  const date = getDateKey();
+  const all = getStorage();
+  delete all[date];
+  setStorage(all);
+  cardioScreenshots = [];
+  liftingScreenshots = [];
+  populateData({});
+  setStatus('Cleared ' + date);
+}
+
+function exportPDF() {
+  const date = getDateKey() || 'log';
+  document.querySelectorAll('.section').forEach(s => s.classList.add('open'));
+  const element = document.getElementById('logContent');
+  const opt = {
+    margin: 0.4,
+    filename: `Training-Nutrition-Log-${date}.pdf`,
+    image: { type: 'jpeg', quality: 0.96 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+  };
+  const header = document.createElement('h2');
+  header.style.textAlign = 'center';
+  header.style.margin = '0 0 1rem 0';
+  header.textContent = 'Training & Nutrition Log — ' + date;
+  element.prepend(header);
+
+  html2pdf().set(opt).from(element).save().finally(() => header.remove());
+}
+
+// Init
+initMeals();
+document.getElementById('logDate').addEventListener('change', loadDate);
+setToday();
+
+// Auto-save on most field changes
+document.getElementById('logContent').addEventListener('change', () => {
+  if (getDateKey()) saveLog();
+});
+</script>
+</body>
+</html>
